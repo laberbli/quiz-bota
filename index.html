@@ -412,58 +412,57 @@
    chemins vers vos photos locales (ex : ["images/1a.jpg",
    "images/1b.jpg"]). S'il y a plusieurs images, des flèches et
    des points apparaissent pour naviguer entre elles.
+   Le champ "commons" est aussi un tableau : indiquez-y un ou
+   plusieurs noms communs valides pour la même plante (ex :
+   ["Pissenlit officinal", "Dent-de-lion"]). N'importe lequel
+   d'entre eux sera accepté comme réponse correcte.
    ============================================================ */
-  
-  /*TODO:
-   * - ajouter possibilité d'avoir plusieurs noms communs 
-   * - supprimer bouton skip (redondant)
-   */
 const plants = [
-  { id: 67, common: "Amarante réfléchie", scientific: "Amaranthus retroflexus", family: "AMARANTHACEES", images: ["images/67.jpg"] },
-  { id: 68, common: "Chénopode blanc", scientific: "Chenopodium album", family: "AMARANTHACEES", images: ["images/68.jpg"] },
-  { id: 58, common: "Maceron potager", scientific: "Smyrnium olusatrum", family: "APIACEES", images: ["images/58.jpg","images/x58.jpg"] },
-  { id: 65, common: "Carotte sauvage", scientific: "Daucus carota", family: "APIACEES", images: ["images/65.jpg"] },
-  { id: 36, common: "Houx à feuilles piquantes", scientific: "Ilex aquifolium", family: "AQUIFOLIACEES", images: ["images/36.jpg"] },
-  { id: 33, common: "Lierre grimpant", scientific: "Hedera helix", family: "ARALIACEES", images: ["images/33.jpg"] },
-  { id: 62, common: "Pissenlit officinal", scientific: "Taraxacum officinale", family: "ASTERACEES", images: ["images/62.jpg"] },
-  { id: 66, common: "Chicorée amère", scientific: "Cichorium intybus", family: "ASTERACEES", images: ["images/66.jpg"] },
-  { id: 13, common: "Charme faux-bouleau", scientific: "Carpinus betulus", family: "BETULACEES", images: ["images/13.jpg"] },
-  { id: 29, common: "Noisetier coudrier", scientific: "Corylus avellana", family: "BETULACEES", images: ["images/29.jpg"] },
-  { id: 38, common: "Pulmonaire officinale", scientific: "Pulmonaria officinalis", family: "BORAGINACEES", images: ["images/38.jpg"] },
-  { id: 9, common: "Chèvrefeuille des haies", scientific: "Lonicera xylosteum", family: "CAPRIFOLIACEES", images: ["images/9.jpg"] },
-  { id: 35, common: "Chèvrefeuille des bois", scientific: "Lonicera periclymenum", family: "CAPRIFOLIACEES", images: ["images/35.jpg"] },
-  { id: 10, common: "Cornouiller sanguin", scientific: "Cornus sanguinea", family: "CORNACEES", images: ["images/10.jpg"] },
-  { id: 19, common: "Carex des bois", scientific: "Carex sylvatica", family: "CYPERACEES", images: ["images/19.jpg"] },
-  { id: 53, common: "Tamier commun", scientific: "Dioscorea communis", family: "DIOSCOREACEES", images: ["images/53.png","images/x53.jpg"] },
-  { id: 60, common: "Robinier faux-acacia", scientific: "Robinia pseudacacia", family: "FABACEES", images: ["images/60.jpg"] },
-  { id: 1, common: "Chêne pédonculé", scientific: "Quercus robur", family: "FAGACEES", images: ["images/1.jpg"] },
-  { id: 28, common: "Châtaignier cultivé", scientific: "Castanea sativa", family: "FAGACEES", images: ["images/28.jpg"] },
-  { id: 61, common: "Millepertuis perforé", scientific: "Hypericum perforatum", family: "HYPERICACEES", images: ["images/61.jpg"] },
-  { id: 18, common: "Brunelle commune", scientific: "Prunella vulgaris", family: "LAMIACEES", images: ["images/18.jpg"] },
-  { id: 3, common: "Frêne élevé", scientific: "Fraxinus excelsior", family: "OLEACEES", images: ["images/3.jpg"] },
-  { id: 48, common: "Troëne vulgaire", scientific: "Ligustrum vulgare", family: "OLEACEES", images: ["images/48.jpg"] },
-  { id: 63, common: "Plantain lancéolé", scientific: "Plantago lanceolata", family: "PLANTAGINACEES", images: ["images/63.jpg"] },
-  { id: 73, common: "Platane occidental", scientific: "Platanus occidentalis", family: "PLATANACEES", images: ["images/73.png"] },
-  { id: 70, common: "Pourpier potager", scientific: "Portulaca oleracea", family: "PORTULACACEES", images: ["images/70.jpg"] },
-  { id: 40, common: "Cyclamen à feuilles de lierre", scientific: "Cyclamen hederifolium", family: "PRIMULACEES", images: ["images/40.jpg"] },
-  { id: 39, common: "Fougère aigle", scientific: "Pteridium aquilinum", family: "PTERIDIACEES", images: ["images/39.jpg"] },
-  { id: 2, common: "Clématite vigne-blanche", scientific: "Clematis vitalba", family: "RANUNCULACEES", images: ["images/2.jpg"] },
-  { id: 6, common: "Alisier torminal", scientific: "Torminalis glabberina", family: "ROSACEES", images: ["images/6.jpg"] },
-  { id: 15, common: "Merisier", scientific: "Prunus avium", family: "ROSACEES", images: ["images/15.jpg"] },
-  { id: 22, common: "Aubépine à un style", scientific: "Crataegus monogyna", family: "ROSACEES", images: ["images/22.jpg"] },
-  { id: 23, common: "Ronce arbrisseau", scientific: "Rubus fruticosus", family: "ROSACEES", images: ["images/23.jpg"] },
-  { id: 27, common: "Prunellier", scientific: "Prunus spinosa", family: "ROSACEES", images: ["images/27.png"] },
-  { id: 42, common: "Benoite commune", scientific: "Geum urbanum", family: "ROSACEES", images: ["images/42.jpg","images/x42.jpg"] },
-  { id: 46, common: "Laurier cerise", scientific: "Prunus laurocerasus", family: "ROSACEES", images: ["images/46.jpg"] },
-  { id: 47, common: "Fraisier vrai", scientific: "Fragaria vesca", family: "ROSACEES", images: ["images/47.jpg"] },
-  { id: 31, common: "Garance voyageuse", scientific: "Rubia peregrina", family: "RUBIACEES", images: ["images/31.jpg"] },
-  { id: 4, common: "Érable champêtre", scientific: "Acer campestre", family: "SAPINDACEES", images: ["images/4.jpg"] },
-  { id: 5, common: "Érable plane", scientific: "Acer platanoides", family: "SAPINDACEES", images: ["images/5.jpg"] },
-  { id: 72, common: "Érable sycomore", scientific: "Acer pseudoplatanus", family: "SAPINDACEES", images: ["images/72.jpg"] },
-  { id: 59, common: "Molène bouillon-blanc", scientific: "Verbascum thapsus", family: "SCROPHULARIACEES", images: ["images/59.jpg"] },
-  { id: 64, common: "Morelle douce amère", scientific: "Solanum dulcamara", family: "SOLANACEES", images: ["images/64.jpg"] },
-  { id: 69, common: "Verveine officinale", scientific: "Verbena officinalis", family: "VERBENACEES", images: ["images/69.jpg"] },
-  { id: 11, common: "Violette des bois", scientific: "Viola reichenbachiana", family: "VIOLACEES", images: ["images/11.jpg"] }
+  { id: 67, commons: ["Amarante réfléchie"], scientific: "Amaranthus retroflexus", family: "AMARANTHACEES", images: ["images/67.jpg"] },
+  { id: 68, commons: ["Chénopode blanc"], scientific: "Chenopodium album", family: "AMARANTHACEES", images: ["images/68.jpg"] },
+  { id: 58, commons: ["Maceron potager"], scientific: "Smyrnium olusatrum", family: "APIACEES", images: ["images/58.jpg","images/x58.jpg"] },
+  { id: 65, commons: ["Carotte sauvage"], scientific: "Daucus carota", family: "APIACEES", images: ["images/65.jpg"] },
+  { id: 36, commons: ["Houx à feuilles piquantes"], scientific: "Ilex aquifolium", family: "AQUIFOLIACEES", images: ["images/36.jpg"] },
+  { id: 33, commons: ["Lierre grimpant"], scientific: "Hedera helix", family: "ARALIACEES", images: ["images/33.jpg"] },
+  { id: 62, commons: ["Pissenlit officinal"], scientific: "Taraxacum officinale", family: "ASTERACEES", images: ["images/62.jpg"] },
+  { id: 66, commons: ["Chicorée amère"], scientific: "Cichorium intybus", family: "ASTERACEES", images: ["images/66.jpg"] },
+  { id: 13, commons: ["Charme faux-bouleau"], scientific: "Carpinus betulus", family: "BETULACEES", images: ["images/13.jpg"] },
+  { id: 29, commons: ["Noisetier coudrier"], scientific: "Corylus avellana", family: "BETULACEES", images: ["images/29.jpg"] },
+  { id: 38, commons: ["Pulmonaire officinale"], scientific: "Pulmonaria officinalis", family: "BORAGINACEES", images: ["images/38.jpg"] },
+  { id: 9, commons: ["Chèvrefeuille des haies","Lonicera camérisier"], scientific: "Lonicera xylosteum", family: "CAPRIFOLIACEES", images: ["images/9.jpg"] },
+  { id: 35, commons: ["Chèvrefeuille des bois","Lonicera periclymène"], scientific: "Lonicera periclymenum", family: "CAPRIFOLIACEES", images: ["images/35.jpg"] },
+  { id: 10, commons: ["Cornouiller sanguin"], scientific: "Cornus sanguinea", family: "CORNACEES", images: ["images/10.jpg"] },
+  { id: 19, commons: ["Carex","Laîche des bois"], scientific: "Carex sylvatica", family: "CYPERACEES", images: ["images/19.jpg"] },
+  { id: 53, commons: ["Tamier commun","Herbe aux femmes battues"], scientific: "Dioscorea communis", family: "DIOSCOREACEES", images: ["images/53.png","images/x53.jpg"] },
+  { id: 60, commons: ["Robinier faux-acacia"], scientific: "Robinia pseudacacia", family: "FABACEES", images: ["images/60.jpg"] },
+  { id: 1, commons: ["Chêne pédonculé"], scientific: "Quercus robur", family: "FAGACEES", images: ["images/1.jpg"] },
+  { id: 28, commons: ["Châtaignier cultivé"], scientific: "Castanea sativa", family: "FAGACEES", images: ["images/28.jpg"] },
+  { id: 61, commons: ["Millepertuis perforé"], scientific: "Hypericum perforatum", family: "HYPERICACEES", images: ["images/61.jpg"] },
+  { id: 18, commons: ["Brunelle commune"], scientific: "Prunella vulgaris", family: "LAMIACEES", images: ["images/18.jpg"] },
+  { id: 3, commons: ["Frêne élevé"], scientific: "Fraxinus excelsior", family: "OLEACEES", images: ["images/3.jpg"] },
+  { id: 48, commons: ["Troëne vulgaire"], scientific: "Ligustrum vulgare", family: "OLEACEES", images: ["images/48.jpg"] },
+  { id: 63, commons: ["Plantain lancéolé"], scientific: "Plantago lanceolata", family: "PLANTAGINACEES", images: ["images/63.jpg"] },
+  { id: 73, commons: ["Platane occidental"], scientific: "Platanus occidentalis", family: "PLATANACEES", images: ["images/73.png"] },
+  { id: 70, commons: ["Pourpier potager"], scientific: "Portulaca oleracea", family: "PORTULACACEES", images: ["images/70.jpg"] },
+  { id: 40, commons: ["Cyclamen à feuilles de lierre"], scientific: "Cyclamen hederifolium", family: "PRIMULACEES", images: ["images/40.jpg"] },
+  { id: 39, commons: ["Fougère aigle"], scientific: "Pteridium aquilinum", family: "PTERIDIACEES", images: ["images/39.jpg"] },
+  { id: 2, commons: ["Clématite vigne-blanche"], scientific: "Clematis vitalba", family: "RANUNCULACEES", images: ["images/2.jpg"] },
+  { id: 6, commons: ["Alisier torminal"], scientific: "Torminalis glabberina", family: "ROSACEES", images: ["images/6.jpg"] },
+  { id: 15, commons: ["Merisier"], scientific: "Prunus avium", family: "ROSACEES", images: ["images/15.jpg"] },
+  { id: 22, commons: ["Aubépine à un style"], scientific: "Crataegus monogyna", family: "ROSACEES", images: ["images/22.jpg"] },
+  { id: 23, commons: ["Ronce arbrisseau"], scientific: "Rubus fruticosus", family: "ROSACEES", images: ["images/23.jpg"] },
+  { id: 27, commons: ["Prunellier","Prunier épineux"], scientific: "Prunus spinosa", family: "ROSACEES", images: ["images/27.png"] },
+  { id: 42, commons: ["Benoite commune"], scientific: "Geum urbanum", family: "ROSACEES", images: ["images/42.jpg","images/x42.jpg"] },
+  { id: 46, commons: ["Laurier cerise"], scientific: "Prunus laurocerasus", family: "ROSACEES", images: ["images/46.jpg"] },
+  { id: 47, commons: ["Fraisier vrai"], scientific: "Fragaria vesca", family: "ROSACEES", images: ["images/47.jpg"] },
+  { id: 31, commons: ["Garance voyageuse"], scientific: "Rubia peregrina", family: "RUBIACEES", images: ["images/31.jpg"] },
+  { id: 4, commons: ["Érable champêtre"], scientific: "Acer campestre", family: "SAPINDACEES", images: ["images/4.jpg"] },
+  { id: 5, commons: ["Érable plane"], scientific: "Acer platanoides", family: "SAPINDACEES", images: ["images/5.jpg"] },
+  { id: 72, commons: ["Érable sycomore"], scientific: "Acer pseudoplatanus", family: "SAPINDACEES", images: ["images/72.jpg"] },
+  { id: 59, commons: ["Molène bouillon-blanc"], scientific: "Verbascum thapsus", family: "SCROPHULARIACEES", images: ["images/59.jpg"] },
+  { id: 64, commons: ["Morelle douce amère"], scientific: "Solanum dulcamara", family: "SOLANACEES", images: ["images/64.jpg"] },
+  { id: 69, commons: ["Verveine officinale"], scientific: "Verbena officinalis", family: "VERBENACEES", images: ["images/69.jpg"] },
+  { id: 11, commons: ["Violette des bois"], scientific: "Viola reichenbachiana", family: "VIOLACEES", images: ["images/11.jpg"] }
 ];
 
 let order = [];
@@ -506,7 +505,7 @@ const restartBtn = document.getElementById('restart-btn');
 const datalistCommon = document.getElementById('list-common');
 const datalistFamily = document.getElementById('list-family');
 
-const allCommons = [...new Set(plants.map(p => p.common))].sort();
+const allCommons = [...new Set(plants.flatMap(p => p.commons))].sort();
 const allFamilies = [...new Set(plants.map(p => p.family))].sort();
 
 function shuffle(arr) {
@@ -826,7 +825,7 @@ function loadQuestion() {
   loadImage();
   updateProgress();
   updateScoreLabel();
-  inputFamily.focus();
+  //inputFamily.focus();
 }
 
 function loadImage() {
@@ -909,7 +908,7 @@ function checkAnswers() {
   const userScientific = normalize(inputScientific.value);
   const userFamily = normalizeFamily(inputFamily.value);
 
-  const okCommon = userCommon === normalize(plant.common);
+  const okCommon = plant.commons.some(c => normalize(c) === userCommon);
   const okScientific = userScientific === normalize(plant.scientific);
   const okFamily = userFamily === normalizeFamily(plant.family);
 
@@ -920,7 +919,7 @@ function checkAnswers() {
   inputFamily.classList.toggle('correct', okFamily);
   inputFamily.classList.toggle('incorrect', !okFamily);
 
-  if (!okCommon) { revealCommon.textContent = 'Réponse : ' + plant.common; revealCommon.classList.add('show'); }
+  if (!okCommon) { revealCommon.textContent = 'Réponse : ' + plant.commons.join(' / '); revealCommon.classList.add('show'); }
   if (!okScientific) { revealScientific.textContent = 'Réponse : ' + plant.scientific; revealScientific.classList.add('show'); }
   if (!okFamily) { revealFamily.textContent = 'Réponse : ' + plant.family; revealFamily.classList.add('show'); }
 
@@ -943,16 +942,6 @@ function checkAnswers() {
   [inputCommon, inputScientific, inputFamily].forEach(inp => inp.disabled = true);
 }
 
-function revealAnswersForSkip() {
-  const plant = order[currentIndex];
-  revealCommon.textContent = 'Réponse : ' + plant.common;
-  revealCommon.classList.add('show');
-  revealScientific.textContent = 'Réponse : ' + plant.scientific;
-  revealScientific.classList.add('show');
-  revealFamily.textContent = 'Réponse : ' + plant.family;
-  revealFamily.classList.add('show');
-}
-
 validateBtn.addEventListener('click', () => {
   if (!solvedCurrent) {
     checkAnswers();
@@ -964,13 +953,7 @@ validateBtn.addEventListener('click', () => {
 skipBtn.addEventListener('click', () => {
   const plant = order[currentIndex];
   missed.push(plant);
-  revealAnswersForSkip();
-  resultBanner.textContent = 'Question passée — les réponses sont affichées ci-dessus.';
-  resultBanner.className = 'result-banner ko';
-  [inputCommon, inputScientific, inputFamily].forEach(inp => inp.disabled = true);
-  skipBtn.style.display = 'none';
-  validateBtn.textContent = 'Suivant →';
-  solvedCurrent = true;
+  goToNext();
 });
 
 function goToNext() {
@@ -998,7 +981,7 @@ function showResult() {
   if (missed.length > 0) {
     missedList.style.display = 'block';
     missedList.innerHTML = '<strong>Plantes à revoir :</strong><ul>' +
-      missed.map(p => `<li>${p.common} — <em>${p.scientific}</em> (${p.family})</li>`).join('') +
+      missed.map(p => `<li>${p.commons.join(' / ')} — <em>${p.scientific}</em> (${p.family})</li>`).join('') +
       '</ul>';
   } else {
     missedList.style.display = 'none';
