@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz de Botanique - Reconnaissance visuelle</title>
+<style>
+  :root {
+    --green-dark: #1e4620;
+    --green: #2f7a3d;
+    --green-light: #a8d5ac;
+    --green-bg: #f2f8f0;
+    --red: #c0392b;
+    --red-bg: #fdecea;
+    --gray: #6b7280;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, var(--green-bg), #e6f2e6);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(30,70,32,0.15);
+    max-width: 520px;
+    width: 100%;
+    padding: 28px;
+  }
+  h1 {
+    color: var(--green-dark);
+    text-align: center;
+    margin-top: 0;
+    font-size: 1.5em;
+  }
+  .subtitle {
+    text-align: center;
+    color: var(--gray);
+    margin-bottom: 18px;
+    font-size: 0.9em;
+  }
+  .progress-bar {
+    background: #e2e2e2;
+    border-radius: 8px;
+    height: 10px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .progress-fill {
+    background: var(--green);
+    height: 100%;
+    width: 0%;
+    transition: width 0.4s ease;
+  }
+  .image-wrap {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background: #eef4ee;
+    border: 2px dashed var(--green-light);
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+    position: relative;
+  }
+  .image-wrap img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    max-width: none;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+  .image-wrap img.dragging {
+    cursor: grabbing;
+  }
+  .image-reset-btn {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(255,255,255,0.85);
+    border: none;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 0.75em;
+    color: var(--green-dark);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    display: none;
+  }
+  .image-drag-hint {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(255,255,255,0.85);
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 0.7em;
+    color: var(--gray);
+    pointer-events: none;
+  }
+  .image-placeholder-text {
+    color: var(--gray);
+    font-size: 0.85em;
+    text-align: center;
+    padding: 10px;
+  }
+  .image-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255,255,255,0.85);
+    border: none;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    font-size: 1.1em;
+    cursor: pointer;
+    color: var(--green-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  }
+  .image-nav-btn:hover { background: #fff; }
+  .image-nav-btn.prev { left: 10px; }
+  .image-nav-btn.next { right: 10px; }
+  .image-dots {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+  .image-dots .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #d8e4d8;
+    cursor: pointer;
+  }
+  .image-dots .dot.active {
+    background: var(--green);
+  }
+  .field {
+    margin-bottom: 14px;
+  }
+  .field label {
+    display: block;
+    font-size: 0.85em;
+    color: var(--green-dark);
+    font-weight: 600;
+    margin-bottom: 5px;
+  }
+  .field input {
+    width: 100%;
+    padding: 11px 12px;
+    border-radius: 8px;
+    border: 2px solid #d8e4d8;
+    font-size: 1em;
+    background: #fafcfa;
+    transition: all 0.15s ease;
+  }
+  .field input:focus {
+    outline: none;
+    border-color: var(--green);
+  }
+  .field input.correct {
+    border-color: var(--green);
+    background: #e8f5e9;
+    color: var(--green-dark);
+  }
+  .field input.incorrect {
+    border-color: var(--red);
+    background: var(--red-bg);
+    color: var(--red);
+  }
+  .field .answer-reveal {
+    font-size: 0.8em;
+    color: var(--red);
+    margin-top: 4px;
+    display: none;
+  }
+  .field .answer-reveal.show {
+    display: block;
+  }
+  .result-banner {
+    text-align: center;
+    font-weight: 600;
+    margin: 14px 0;
+    min-height: 20px;
+    font-size: 0.95em;
+  }
+  .result-banner.ok { color: var(--green-dark); }
+  .result-banner.ko { color: var(--red); }
+  .footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 18px;
+    gap: 10px;
+  }
+  .score-label {
+    color: var(--gray);
+    font-size: 0.85em;
+  }
+  .btn-group {
+    display: flex;
+    gap: 10px;
+  }
+  button {
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95em;
+    cursor: pointer;
+    padding: 10px 18px;
+  }
+  button.validate {
+    background: var(--green);
+    color: white;
+  }
+  button.validate:hover { background: var(--green-dark); }
+  button.skip {
+    background: transparent;
+    color: var(--gray);
+    text-decoration: underline;
+    padding: 10px 4px;
+  }
+  button.skip:hover { color: var(--red); }
+  .result {
+    text-align: center;
+  }
+  .result h2 { color: var(--green-dark); }
+  .result .score {
+    font-size: 3em;
+    color: var(--green);
+    font-weight: bold;
+    margin: 14px 0;
+  }
+  .result p { color: var(--gray); }
+  .missed-list {
+    text-align: left;
+    background: var(--green-bg);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin: 16px 0;
+    font-size: 0.88em;
+    color: #333;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+  .missed-list li { margin-bottom: 6px; }
+  button.restart {
+    background: var(--green);
+    color: white;
+    padding: 12px 26px;
+    margin-top: 8px;
+  }
+  button.restart:hover { background: var(--green-dark); }
+  .leaf { text-align: center; font-size: 2em; margin-bottom: 6px; }
+  .loading-screen {
+    text-align: center;
+    padding: 30px 10px;
+  }
+  .loading-spinner {
+    width: 46px;
+    height: 46px;
+    border: 5px solid var(--green-light);
+    border-top-color: var(--green);
+    border-radius: 50%;
+    margin: 10px auto 20px;
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  .loading-text {
+    color: var(--green-dark);
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .loading-subtext {
+    color: var(--gray);
+    font-size: 0.85em;
+    margin-bottom: 18px;
+  }
+  .loading-progress-bar {
+    background: #e2e2e2;
+    border-radius: 8px;
+    height: 10px;
+    overflow: hidden;
+    width: 100%;
+  }
+  .loading-progress-fill {
+    background: var(--green);
+    height: 100%;
+    width: 0%;
+    transition: width 0.2s ease;
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="leaf">🌿</div>
+  <h1>Quiz de Botanique</h1>
+  <div class="subtitle">Identifiez la plante à partir de la photo</div>
+
+  <div id="loading-screen" class="loading-screen">
+    <div class="loading-spinner"></div>
+    <div class="loading-text" id="loading-text">Chargement des images…</div>
+    <div class="loading-subtext" id="loading-subtext">0 / 0</div>
+    <div class="loading-progress-bar"><div class="loading-progress-fill" id="loading-progress-fill"></div></div>
+  </div>
+
+  <div id="quiz-screen" style="display:none;">
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+
+    <div class="image-wrap">
+      <img id="plant-image" src="" alt="Photo de la plante à identifier" draggable="false"
+           ondragstart="return false;"
+           onerror="this.style.display='none'; document.getElementById('img-placeholder').style.display='flex';">
+      <div class="image-placeholder-text" id="img-placeholder" style="display:none; flex-direction:column;">
+        📷 Image non trouvée<br>
+        <span id="img-path-hint" style="font-size:0.8em; opacity:0.7;"></span>
+      </div>
+      <button class="image-nav-btn prev" id="img-prev" style="display:none;">‹</button>
+      <button class="image-nav-btn next" id="img-next" style="display:none;">›</button>
+      <div class="image-drag-hint" id="image-drag-hint">✥ glisser pour déplacer</div>
+      <button class="image-reset-btn" id="img-reset">Recentrer</button>
+    </div>
+    <div class="image-dots" id="image-dots"></div>
+
+    <div class="field">
+      <label for="input-family">Famille</label>
+      <input type="text" id="input-family" list="list-family" autocomplete="off" placeholder="ex : PINACEES ou PINACEAE">
+      <div class="answer-reveal" id="reveal-family"></div>
+    </div>
+
+    <div class="field">
+      <label for="input-scientific">Nom scientifique</label>
+      <input type="text" id="input-scientific" autocomplete="off" placeholder="ex : Pinus sylvestris">
+      <div class="answer-reveal" id="reveal-scientific"></div>
+    </div>
+
+    <div class="field">
+      <label for="input-common">Nom commun</label>
+      <input type="text" id="input-common" list="list-common" autocomplete="off" placeholder="ex : Pin sylvestre (suggestions à partir de 3 caractères)">
+      <div class="answer-reveal" id="reveal-common"></div>
+    </div>
+
+    <datalist id="list-common"></datalist>
+    <datalist id="list-family"></datalist>
+
+    <div class="result-banner" id="result-banner"></div>
+
+    <div class="footer">
+      <div class="score-label" id="score-label">Score : 0 / 0</div>
+      <div class="btn-group">
+        <button class="skip" id="skip-btn">Passer</button>
+        <button class="validate" id="validate-btn">Valider</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="result-screen" style="display:none;" class="result">
+    <h2>Quiz terminé !</h2>
+    <div class="score" id="final-score"></div>
+    <p id="result-message"></p>
+    <div class="missed-list" id="missed-list" style="display:none;"></div>
+    <button class="restart" id="restart-btn">Recommencer</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   LISTE DES PLANTES
+   Le champ "images" est un tableau : indiquez-y un ou plusieurs
+   chemins vers vos photos locales (ex : ["images/1a.jpg",
+   "images/1b.jpg"]). S'il y a plusieurs images, des flèches et
+   des points apparaissent pour naviguer entre elles.
+   ============================================================ */
+const plants = [
+  { id: 67, common: "Amarante réfléchie", scientific: "Amaranthus retroflexus", family: "AMARANTHACEES", images: ["images/67.jpg"] },
+  { id: 68, common: "Chénopode blanc", scientific: "Chenopodium album", family: "AMARANTHACEES", images: ["images/68.jpg"] },
+  { id: 58, common: "Maceron potager", scientific: "Smyrnium olusatrum", family: "APIACEES", images: ["images/58.jpg","images/x58.jpg"] },
+  { id: 65, common: "Carotte sauvage", scientific: "Daucus carota", family: "APIACEES", images: ["images/65.jpg"] },
+  { id: 36, common: "Houx à feuilles piquantes", scientific: "Ilex aquifolium", family: "AQUIFOLIACEES", images: ["images/36.jpg"] },
+  { id: 33, common: "Lierre grimpant", scientific: "Hedera helix", family: "ARALIACEES", images: ["images/33.jpg"] },
+  { id: 62, common: "Pissenlit officinal", scientific: "Taraxacum officinale", family: "ASTERACEES", images: ["images/62.jpg"] },
+  { id: 66, common: "Chicorée amère", scientific: "Cichorium intybus", family: "ASTERACEES", images: ["images/66.jpg"] },
+  { id: 13, common: "Charme faux-bouleau", scientific: "Carpinus betulus", family: "BETULACEES", images: ["images/13.jpg"] },
+  { id: 29, common: "Noisetier coudrier", scientific: "Corylus avellana", family: "BETULACEES", images: ["images/29.jpg"] },
+  { id: 38, common: "Pulmonaire officinale", scientific: "Pulmonaria officinalis", family: "BORAGINACEES", images: ["images/38.jpg"] },
+  { id: 9, common: "Chèvrefeuille des haies", scientific: "Lonicera xylosteum", family: "CAPRIFOLIACEES", images: ["images/9.jpg"] },
+  { id: 35, common: "Chèvrefeuille des bois", scientific: "Lonicera periclymenum", family: "CAPRIFOLIACEES", images: ["images/35.jpg"] },
+  { id: 10, common: "Cornouiller sanguin", scientific: "Cornus sanguinea", family: "CORNACEES", images: ["images/10.jpg"] },
+  { id: 19, common: "Carex des bois", scientific: "Carex sylvatica", family: "CYPERACEES", images: ["images/19.jpg"] },
+  { id: 53, common: "Tamier commun", scientific: "Dioscorea communis", family: "DIOSCOREACEES", images: ["images/53.png"] },
+  { id: 60, common: "Robinier faux-acacia", scientific: "Robinia pseudacacia", family: "FABACEES", images: ["images/60.jpg"] },
+  { id: 1, common: "Chêne pédonculé", scientific: "Quercus robur", family: "FAGACEES", images: ["images/1.jpg"] },
+  { id: 28, common: "Chataignier cultivé", scientific: "Castanea sativa", family: "FAGACEES", images: ["images/28.jpg"] },
+  { id: 61, common: "Millepertuis perforé", scientific: "Hypericum perforatum", family: "HYPERICACEES", images: ["images/61.jpg"] },
+  { id: 18, common: "Brunelle commune", scientific: "Prunella vulgaris", family: "LAMIACEES", images: ["images/18.jpg"] },
+  { id: 3, common: "Frêne élevé", scientific: "Fraxinus excelsior", family: "OLEACEES", images: ["images/3.jpg"] },
+  { id: 48, common: "Troëne vulgaire", scientific: "Ligustrum vulgare", family: "OLEACEES", images: ["images/48.jpg"] },
+  { id: 63, common: "Plantain lancéolé", scientific: "Plantago lanceolata", family: "PLANTAGINACEES", images: ["images/63.jpg"] },
+  { id: 73, common: "Platane occidental", scientific: "Platanus occidentalis", family: "PLATANACEES", images: ["images/73.png"] },
+  { id: 70, common: "Pourpier potager", scientific: "Portulaca oleracea", family: "PORTULACACEES", images: ["images/70.jpg"] },
+  { id: 40, common: "Cyclamen à feuilles de lierre", scientific: "Cyclamen hederifolium", family: "PRIMULACEES", images: ["images/40.jpg"] },
+  { id: 39, common: "Fougère aigle", scientific: "Pteridium aquilinum", family: "PTERIDIACEES", images: ["images/39.jpg"] },
+  { id: 2, common: "Clématite vigne-blanche", scientific: "Clematis vitalba", family: "RANUNCULACEES", images: ["images/2.jpg"] },
+  { id: 6, common: "Alisier torminal", scientific: "Torminalis glabberina", family: "ROSACEES", images: ["images/6.jpg"] },
+  { id: 15, common: "Merisier", scientific: "Prunus avium", family: "ROSACEES", images: ["images/15.jpg"] },
+  { id: 22, common: "Aubépine à un style", scientific: "Crataegus monogyna", family: "ROSACEES", images: ["images/22.jpg"] },
+  { id: 23, common: "Ronce arbrisseau", scientific: "Rubus fruticosus", family: "ROSACEES", images: ["images/23.jpg"] },
+  { id: 27, common: "Prunellier", scientific: "Prunus spinosa", family: "ROSACEES", images: ["images/27.png"] },
+  { id: 42, common: "Benoite commune", scientific: "Geum urbanum", family: "ROSACEES", images: ["images/42.jpg","images/x42.jpg"] },
+  { id: 46, common: "Laurier cerise", scientific: "Prunus laurocerasus", family: "ROSACEES", images: ["images/46.jpg"] },
+  { id: 47, common: "Fraisier vrai", scientific: "Fragaria vesca", family: "ROSACEES", images: ["images/47.jpg"] },
+  { id: 31, common: "Garance voyageuse", scientific: "Rubia peregrina", family: "RUBIACEES", images: ["images/31.jpg"] },
+  { id: 4, common: "Erable champêtre", scientific: "Acer campestre", family: "SAPINDACEES", images: ["images/4.jpg"] },
+  { id: 5, common: "Erable plane", scientific: "Acer platanoides", family: "SAPINDACEES", images: ["images/5.jpg"] },
+  { id: 72, common: "Erable sycomore", scientific: "Acer pseudoplatanus", family: "SAPINDACEES", images: ["images/72.jpg"] },
+  { id: 59, common: "Molène bouillon-blanc", scientific: "Verbascum thapsus", family: "SCROPHULARIACEES", images: ["images/59.jpg"] },
+  { id: 64, common: "Morelle douce amère", scientific: "Solanum dulcamara", family: "SOLANACEES", images: ["images/64.jpg"] },
+  { id: 69, common: "Verveine officinale", scientific: "Verbena officinalis", family: "VERBENACEES", images: ["images/69.jpg"] },
+  { id: 11, common: "Violette des bois", scientific: "Viola reichenbachiana", family: "VIOLACEES", images: ["images/11.jpg"] }
+];
+
+let order = [];
+let currentIndex = 0;
+let currentImageIndex = 0;
+let score = 0;
+let solvedCurrent = false;
+let missed = [];
+
+const imgEl = document.getElementById('plant-image');
+const imgPlaceholder = document.getElementById('img-placeholder');
+const imgPathHint = document.getElementById('img-path-hint');
+const imgPrevBtn = document.getElementById('img-prev');
+const imgNextBtn = document.getElementById('img-next');
+const imageDots = document.getElementById('image-dots');
+const imgResetBtn = document.getElementById('img-reset');
+const imageDragHint = document.getElementById('image-drag-hint');
+const imageWrapEl = document.querySelector('.image-wrap');
+const inputCommon = document.getElementById('input-common');
+const inputScientific = document.getElementById('input-scientific');
+const inputFamily = document.getElementById('input-family');
+const revealCommon = document.getElementById('reveal-common');
+const revealScientific = document.getElementById('reveal-scientific');
+const revealFamily = document.getElementById('reveal-family');
+const resultBanner = document.getElementById('result-banner');
+const validateBtn = document.getElementById('validate-btn');
+const skipBtn = document.getElementById('skip-btn');
+const scoreLabel = document.getElementById('score-label');
+const progressFill = document.getElementById('progress-fill');
+const quizScreen = document.getElementById('quiz-screen');
+const resultScreen = document.getElementById('result-screen');
+const finalScore = document.getElementById('final-score');
+const resultMessage = document.getElementById('result-message');
+const missedList = document.getElementById('missed-list');
+const restartBtn = document.getElementById('restart-btn');
+const datalistCommon = document.getElementById('list-common');
+const datalistFamily = document.getElementById('list-family');
+
+const allCommons = [...new Set(plants.map(p => p.common))].sort();
+const allFamilies = [...new Set(plants.map(p => p.family))].sort();
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function normalize(str) {
+  return str
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // enlève les accents
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/[’']/g, "'");
+}
+
+/* Normalisation spécifique au nom de famille : accepte indifféremment
+   les terminaisons "-acees" (ex : ROSACEES) et "-aceae" (ex : ROSACEAE),
+   qui désignent la même famille botanique. */
+function normalizeFamily(str) {
+  return normalize(str).replace(/acees$/, 'aceae');
+}
+
+/* ============================================================
+   DÉPLACEMENT (DRAG) DE L'IMAGE DANS SON CADRE
+   L'image est affichée à sa taille "couvrante" (comme object-fit:
+   cover) mais reste plus grande que le cadre : on peut la faire
+   glisser pour révéler les parties masquées.
+   ============================================================ */
+let dragOffsetX = 0;
+let dragOffsetY = 0;
+let dragBoundsX = [0, 0];
+let dragBoundsY = [0, 0];
+let isDraggingImg = false;
+let dragStartX = 0;
+let dragStartY = 0;
+let dragStartOffsetX = 0;
+let dragStartOffsetY = 0;
+let imgHasOverflow = false;
+
+function applyImageTransform() {
+  imgEl.style.transform = `translate(${dragOffsetX}px, ${dragOffsetY}px)`;
+}
+
+function fitImageToFrame() {
+  const naturalW = imgEl.naturalWidth;
+  const naturalH = imgEl.naturalHeight;
+  if (!naturalW || !naturalH) return;
+
+  const frameW = imageWrapEl.clientWidth;
+  const frameH = imageWrapEl.clientHeight;
+  const scale = Math.max(frameW / naturalW, frameH / naturalH);
+  const renderedW = naturalW * scale;
+  const renderedH = naturalH * scale;
+
+  imgEl.style.width = renderedW + 'px';
+  imgEl.style.height = renderedH + 'px';
+
+  // Bornes : l'image ne doit jamais laisser de vide dans le cadre
+  dragBoundsX = [Math.min(0, frameW - renderedW), 0];
+  dragBoundsY = [Math.min(0, frameH - renderedH), 0];
+
+  // Centrage par défaut
+  dragOffsetX = dragBoundsX[0] / 2;
+  dragOffsetY = dragBoundsY[0] / 2;
+  applyImageTransform();
+
+  imgHasOverflow = (renderedW - frameW > 2) || (renderedH - frameH > 2);
+  imgResetBtn.style.display = imgHasOverflow ? 'block' : 'none';
+  imageDragHint.style.display = imgHasOverflow ? 'block' : 'none';
+}
+
+function clamp(val, min, max) {
+  return Math.max(min, Math.min(max, val));
+}
+
+function startDrag(clientX, clientY) {
+  if (!imgHasOverflow) return;
+  isDraggingImg = true;
+  dragStartX = clientX;
+  dragStartY = clientY;
+  dragStartOffsetX = dragOffsetX;
+  dragStartOffsetY = dragOffsetY;
+  imgEl.classList.add('dragging');
+}
+
+function moveDrag(clientX, clientY) {
+  if (!isDraggingImg) return;
+  const dx = clientX - dragStartX;
+  const dy = clientY - dragStartY;
+  dragOffsetX = clamp(dragStartOffsetX + dx, dragBoundsX[0], dragBoundsX[1]);
+  dragOffsetY = clamp(dragStartOffsetY + dy, dragBoundsY[0], dragBoundsY[1]);
+  applyImageTransform();
+}
+
+function endDrag() {
+  isDraggingImg = false;
+  imgEl.classList.remove('dragging');
+}
+
+imgEl.addEventListener('dragstart', (e) => e.preventDefault());
+
+imgEl.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  startDrag(e.clientX, e.clientY);
+  imgEl.setPointerCapture(e.pointerId);
+});
+imgEl.addEventListener('pointermove', (e) => {
+  if (isDraggingImg) e.preventDefault();
+  moveDrag(e.clientX, e.clientY);
+});
+imgEl.addEventListener('pointerup', (e) => {
+  e.preventDefault();
+  endDrag();
+});
+imgEl.addEventListener('pointercancel', endDrag);
+
+imgEl.addEventListener('load', fitImageToFrame);
+window.addEventListener('resize', () => {
+  if (imgEl.style.display !== 'none') fitImageToFrame();
+});
+
+imgResetBtn.addEventListener('click', () => {
+  dragOffsetX = dragBoundsX[0] / 2;
+  dragOffsetY = dragBoundsY[0] / 2;
+  applyImageTransform();
+});
+
+/* Autocomplétion dynamique : les suggestions n'apparaissent
+   qu'à partir de 3 caractères saisis, et uniquement pour les
+   champs "nom commun" et "famille". */
+function setupDynamicAutocomplete(input, datalistEl, sourceList) {
+  input.addEventListener('input', () => {
+    const val = input.value;
+    if (val.trim().length < 3) {
+      datalistEl.innerHTML = '';
+      return;
+    }
+    const normVal = normalize(val);
+    const matches = sourceList
+      .filter(item => normalize(item).includes(normVal))
+      .slice(0, 8);
+    datalistEl.innerHTML = matches.map(v => `<option value="${v}">`).join('');
+  });
+}
+
+function loadQuestion() {
+  solvedCurrent = false;
+  currentImageIndex = 0;
+  resultBanner.textContent = '';
+  resultBanner.className = 'result-banner';
+  [inputCommon, inputScientific, inputFamily].forEach(inp => {
+    inp.value = '';
+    inp.classList.remove('correct', 'incorrect');
+    inp.disabled = false;
+  });
+  datalistCommon.innerHTML = '';
+  datalistFamily.innerHTML = '';
+  [revealCommon, revealScientific, revealFamily].forEach(r => {
+    r.classList.remove('show');
+    r.textContent = '';
+  });
+  validateBtn.textContent = 'Valider';
+  validateBtn.disabled = false;
+  skipBtn.style.display = 'inline-block';
+  skipBtn.disabled = false;
+
+  loadImage();
+  updateProgress();
+  updateScoreLabel();
+  inputFamily.focus();
+}
+
+function loadImage() {
+  const plant = order[currentIndex];
+  const images = plant.images && plant.images.length ? plant.images : [];
+  imgEl.style.display = 'block';
+  imgPlaceholder.style.display = 'none';
+
+  // Réinitialise le drag/pan avant le chargement de la nouvelle image
+  isDraggingImg = false;
+  imgHasOverflow = false;
+  dragOffsetX = 0;
+  dragOffsetY = 0;
+  imgEl.style.width = '100%';
+  imgEl.style.height = '100%';
+  imgEl.style.transform = 'translate(0px, 0px)';
+  imgResetBtn.style.display = 'none';
+  imageDragHint.style.display = 'none';
+
+  if (images.length > 0) {
+    imgEl.src = images[currentImageIndex];
+    imgPathHint.textContent = images[currentImageIndex];
+  } else {
+    imgEl.src = '';
+    imgPathHint.textContent = '(aucune image renseignée)';
+  }
+
+  const multi = images.length > 1;
+  imgPrevBtn.style.display = multi ? 'flex' : 'none';
+  imgNextBtn.style.display = multi ? 'flex' : 'none';
+
+  imageDots.innerHTML = '';
+  if (multi) {
+    images.forEach((_, i) => {
+      const dot = document.createElement('div');
+      dot.className = 'dot' + (i === currentImageIndex ? ' active' : '');
+      dot.addEventListener('click', () => {
+        currentImageIndex = i;
+        loadImage();
+      });
+      imageDots.appendChild(dot);
+    });
+  }
+}
+
+imgPrevBtn.addEventListener('click', () => {
+  const plant = order[currentIndex];
+  const total = plant.images.length;
+  currentImageIndex = (currentImageIndex - 1 + total) % total;
+  loadImage();
+});
+
+imgNextBtn.addEventListener('click', () => {
+  const plant = order[currentIndex];
+  const total = plant.images.length;
+  currentImageIndex = (currentImageIndex + 1) % total;
+  loadImage();
+});
+
+function updateProgress() {
+  const pct = (currentIndex / order.length) * 100;
+  progressFill.style.width = pct + '%';
+}
+
+function updateScoreLabel() {
+  scoreLabel.textContent = `Score : ${score} / ${order.length}`;
+}
+
+function checkAnswers() {
+  const plant = order[currentIndex];
+  const userCommon = normalize(inputCommon.value);
+  const userScientific = normalize(inputScientific.value);
+  const userFamily = normalizeFamily(inputFamily.value);
+
+  const okCommon = userCommon === normalize(plant.common);
+  const okScientific = userScientific === normalize(plant.scientific);
+  const okFamily = userFamily === normalizeFamily(plant.family);
+
+  inputCommon.classList.toggle('correct', okCommon);
+  inputCommon.classList.toggle('incorrect', !okCommon);
+  inputScientific.classList.toggle('correct', okScientific);
+  inputScientific.classList.toggle('incorrect', !okScientific);
+  inputFamily.classList.toggle('correct', okFamily);
+  inputFamily.classList.toggle('incorrect', !okFamily);
+
+  if (!okCommon) { revealCommon.textContent = 'Réponse : ' + plant.common; revealCommon.classList.add('show'); }
+  if (!okScientific) { revealScientific.textContent = 'Réponse : ' + plant.scientific; revealScientific.classList.add('show'); }
+  if (!okFamily) { revealFamily.textContent = 'Réponse : ' + plant.family; revealFamily.classList.add('show'); }
+
+  const allOk = okCommon && okScientific && okFamily;
+
+  if (allOk) {
+    resultBanner.textContent = '✅ Bravo, les trois réponses sont correctes !';
+    resultBanner.className = 'result-banner ok';
+    score++;
+  } else {
+    resultBanner.textContent = '❌ Au moins une réponse est incorrecte. La bonne réponse est affichée ci-dessus.';
+    resultBanner.className = 'result-banner ko';
+    missed.push(plant);
+  }
+
+  updateScoreLabel();
+  solvedCurrent = true;
+  validateBtn.textContent = 'Suivant →';
+  skipBtn.style.display = 'none';
+  [inputCommon, inputScientific, inputFamily].forEach(inp => inp.disabled = true);
+}
+
+function revealAnswersForSkip() {
+  const plant = order[currentIndex];
+  revealCommon.textContent = 'Réponse : ' + plant.common;
+  revealCommon.classList.add('show');
+  revealScientific.textContent = 'Réponse : ' + plant.scientific;
+  revealScientific.classList.add('show');
+  revealFamily.textContent = 'Réponse : ' + plant.family;
+  revealFamily.classList.add('show');
+}
+
+validateBtn.addEventListener('click', () => {
+  if (!solvedCurrent) {
+    checkAnswers();
+  } else {
+    goToNext();
+  }
+});
+
+skipBtn.addEventListener('click', () => {
+  const plant = order[currentIndex];
+  missed.push(plant);
+  revealAnswersForSkip();
+  resultBanner.textContent = 'Question passée — les réponses sont affichées ci-dessus.';
+  resultBanner.className = 'result-banner ko';
+  [inputCommon, inputScientific, inputFamily].forEach(inp => inp.disabled = true);
+  skipBtn.style.display = 'none';
+  validateBtn.textContent = 'Suivant →';
+  solvedCurrent = true;
+});
+
+function goToNext() {
+  currentIndex++;
+  if (currentIndex < order.length) {
+    loadQuestion();
+  } else {
+    showResult();
+  }
+}
+
+function showResult() {
+  quizScreen.style.display = 'none';
+  resultScreen.style.display = 'block';
+  progressFill.style.width = '100%';
+  finalScore.textContent = `${score} / ${order.length}`;
+  const pct = Math.round((score / order.length) * 100);
+  let msg;
+  if (pct === 100) msg = "Parfait ! Vous maîtrisez toutes les plantes de la liste 🌱";
+  else if (pct >= 70) msg = "Très bien ! Encore quelques révisions pour être imbattable 🌿";
+  else if (pct >= 40) msg = "Pas mal, continuez à réviser les espèces manquées 🌾";
+  else msg = "Encore du travail — revoyez les fiches des plantes ratées 🌻";
+  resultMessage.textContent = msg;
+
+  if (missed.length > 0) {
+    missedList.style.display = 'block';
+    missedList.innerHTML = '<strong>Plantes à revoir :</strong><ul>' +
+      missed.map(p => `<li>${p.common} — <em>${p.scientific}</em> (${p.family})</li>`).join('') +
+      '</ul>';
+  } else {
+    missedList.style.display = 'none';
+  }
+}
+
+restartBtn.addEventListener('click', () => {
+  currentIndex = 0;
+  score = 0;
+  missed = [];
+  order = shuffle(plants);
+  quizScreen.style.display = 'block';
+  resultScreen.style.display = 'none';
+  loadQuestion();
+});
+
+// Valider avec la touche Entrée
+[inputCommon, inputScientific, inputFamily].forEach(inp => {
+  inp.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      validateBtn.click();
+    }
+  });
+});
+
+/* ============================================================
+   PRÉCHARGEMENT DES IMAGES
+   Toutes les images de toutes les plantes sont chargées avant
+   de démarrer le quiz, pour éviter tout temps d'attente pendant
+   le jeu. Un écran de chargement affiche la progression.
+   ============================================================ */
+const loadingScreen = document.getElementById('loading-screen');
+const loadingText = document.getElementById('loading-text');
+const loadingSubtext = document.getElementById('loading-subtext');
+const loadingProgressFill = document.getElementById('loading-progress-fill');
+
+function preloadAllImages(onComplete) {
+  const paths = [];
+  plants.forEach(p => (p.images || []).forEach(src => paths.push(src)));
+  const total = paths.length;
+
+  if (total === 0) {
+    onComplete();
+    return;
+  }
+
+  let done = 0;
+  loadingSubtext.textContent = `0 / ${total}`;
+
+  paths.forEach(src => {
+    const img = new Image();
+    const markDone = () => {
+      done++;
+      loadingSubtext.textContent = `${done} / ${total}`;
+      loadingProgressFill.style.width = (done / total * 100) + '%';
+      if (done === total) onComplete();
+    };
+    img.onload = markDone;
+    img.onerror = markDone; // une image manquante ne doit pas bloquer le chargement
+    img.src = src;
+  });
+}
+
+function hideLoadingScreen() {
+  loadingScreen.style.display = 'none';
+  quizScreen.style.display = 'block';
+}
+
+// Initialisation
+setupDynamicAutocomplete(inputCommon, datalistCommon, allCommons);
+//setupDynamicAutocomplete(inputFamily, datalistFamily, allFamilies);
+order = shuffle(plants);
+preloadAllImages(() => {
+  hideLoadingScreen();
+  loadQuestion();
+});
+</script>
+
+</body>
+</html>
