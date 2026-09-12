@@ -270,17 +270,24 @@
   }
   button.restart:hover { background: var(--green-dark); }
   .leaf { text-align: center; font-size: 2em; margin-bottom: 6px; }
-  .loading-screen {
-    text-align: center;
-    padding: 30px 10px;
+  .image-loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(242, 248, 240, 0.94);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    z-index: 5;
+    border-radius: 10px;
   }
   .loading-spinner {
-    width: 46px;
-    height: 46px;
+    width: 38px;
+    height: 38px;
     border: 5px solid var(--green-light);
     border-top-color: var(--green);
     border-radius: 50%;
-    margin: 10px auto 20px;
     animation: spin 0.9s linear infinite;
   }
   @keyframes spin {
@@ -289,25 +296,7 @@
   .loading-text {
     color: var(--green-dark);
     font-weight: 600;
-    margin-bottom: 6px;
-  }
-  .loading-subtext {
-    color: var(--gray);
     font-size: 0.85em;
-    margin-bottom: 18px;
-  }
-  .loading-progress-bar {
-    background: #e2e2e2;
-    border-radius: 8px;
-    height: 10px;
-    overflow: hidden;
-    width: 100%;
-  }
-  .loading-progress-fill {
-    background: var(--green);
-    height: 100%;
-    width: 0%;
-    transition: width 0.2s ease;
   }
 </style>
 </head>
@@ -318,20 +307,13 @@
   <h1>Quiz de Botanique</h1>
   <div class="subtitle">Identifiez la plante à partir de la photo</div>
 
-  <div id="loading-screen" class="loading-screen">
-    <div class="loading-spinner"></div>
-    <div class="loading-text" id="loading-text">Chargement des images…</div>
-    <div class="loading-subtext" id="loading-subtext">0 / 0</div>
-    <div class="loading-progress-bar"><div class="loading-progress-fill" id="loading-progress-fill"></div></div>
-  </div>
-
-  <div id="quiz-screen" style="display:none;">
+  <div id="quiz-screen">
     <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
 
     <div class="image-wrap">
       <img id="plant-image" src="" alt="Photo de la plante à identifier" draggable="false"
            ondragstart="return false;"
-           onerror="this.style.display='none'; document.getElementById('img-placeholder').style.display='flex';">
+           onerror="this.style.display='none'; document.getElementById('img-placeholder').style.display='flex'; document.getElementById('image-loading-overlay').style.display='none';">
       <div class="image-placeholder-text" id="img-placeholder" style="display:none; flex-direction:column;">
         📷 Image non trouvée<br>
         <span id="img-path-hint" style="font-size:0.8em; opacity:0.7;"></span>
@@ -340,6 +322,10 @@
       <button class="image-nav-btn next" id="img-next" style="display:none;">›</button>
       <div class="image-drag-hint" id="image-drag-hint">✥ glisser pour déplacer</div>
       <button class="image-reset-btn" id="img-reset">Recentrer</button>
+      <div class="image-loading-overlay" id="image-loading-overlay" style="display:none;">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Chargement de l'image…</div>
+      </div>
     </div>
     <div class="image-dots" id="image-dots"></div>
 
@@ -455,6 +441,7 @@ const imgNextBtn = document.getElementById('img-next');
 const imageDots = document.getElementById('image-dots');
 const imgResetBtn = document.getElementById('img-reset');
 const imageDragHint = document.getElementById('image-drag-hint');
+const imageLoadingOverlay = document.getElementById('image-loading-overlay');
 const imageWrapEl = document.querySelector('.image-wrap');
 const inputCommon = document.getElementById('input-common');
 const inputScientific = document.getElementById('input-scientific');
@@ -598,7 +585,10 @@ imgEl.addEventListener('pointerup', (e) => {
 });
 imgEl.addEventListener('pointercancel', endDrag);
 
-imgEl.addEventListener('load', fitImageToFrame);
+imgEl.addEventListener('load', () => {
+  imageLoadingOverlay.style.display = 'none';
+  fitImageToFrame();
+});
 window.addEventListener('resize', () => {
   if (imgEl.style.display !== 'none') fitImageToFrame();
 });
@@ -672,9 +662,11 @@ function loadImage() {
   imageDragHint.style.display = 'none';
 
   if (images.length > 0) {
+    imageLoadingOverlay.style.display = 'flex';
     imgEl.src = images[currentImageIndex];
     imgPathHint.textContent = images[currentImageIndex];
   } else {
+    imageLoadingOverlay.style.display = 'none';
     imgEl.src = '';
     imgPathHint.textContent = '(aucune image renseignée)';
   }
@@ -842,57 +834,11 @@ restartBtn.addEventListener('click', () => {
   });
 });
 
-/* ============================================================
-   PRÉCHARGEMENT DES IMAGES
-   Toutes les images de toutes les plantes sont chargées avant
-   de démarrer le quiz, pour éviter tout temps d'attente pendant
-   le jeu. Un écran de chargement affiche la progression.
-   ============================================================ */
-const loadingScreen = document.getElementById('loading-screen');
-const loadingText = document.getElementById('loading-text');
-const loadingSubtext = document.getElementById('loading-subtext');
-const loadingProgressFill = document.getElementById('loading-progress-fill');
-
-function preloadAllImages(onComplete) {
-  const paths = [];
-  plants.forEach(p => (p.images || []).forEach(src => paths.push(src)));
-  const total = paths.length;
-
-  if (total === 0) {
-    onComplete();
-    return;
-  }
-
-  let done = 0;
-  loadingSubtext.textContent = `0 / ${total}`;
-
-  paths.forEach(src => {
-    const img = new Image();
-    const markDone = () => {
-      done++;
-      loadingSubtext.textContent = `${done} / ${total}`;
-      loadingProgressFill.style.width = (done / total * 100) + '%';
-      if (done === total) onComplete();
-    };
-    img.onload = markDone;
-    img.onerror = markDone; // une image manquante ne doit pas bloquer le chargement
-    img.src = src;
-  });
-}
-
-function hideLoadingScreen() {
-  loadingScreen.style.display = 'none';
-  quizScreen.style.display = 'block';
-}
-
 // Initialisation
 setupDynamicAutocomplete(inputCommon, datalistCommon, allCommons);
 //setupDynamicAutocomplete(inputFamily, datalistFamily, allFamilies);
 order = shuffle(plants);
-preloadAllImages(() => {
-  hideLoadingScreen();
-  loadQuestion();
-});
+loadQuestion();
 </script>
 
 </body>
