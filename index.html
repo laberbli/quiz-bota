@@ -759,8 +759,19 @@ imgEl.addEventListener('dblclick', (e) => {
 });
 
 imgEl.addEventListener('load', () => {
-  imageLoadingOverlay.style.display = 'none';
-  fitImageToFrame();
+  // On attend que l'image soit réellement décodée et prête à être peinte
+  // avant de masquer l'écran de chargement : l'événement 'load' seul peut
+  // se déclencher un peu avant que le rendu ne soit visible à l'écran,
+  // ce qui provoquait un flash (overlay masqué avant le changement d'image).
+  const hideOverlayAndFit = () => {
+    imageLoadingOverlay.style.display = 'none';
+    fitImageToFrame();
+  };
+  if (imgEl.decode) {
+    imgEl.decode().then(hideOverlayAndFit).catch(hideOverlayAndFit);
+  } else {
+    hideOverlayAndFit();
+  }
 });
 window.addEventListener('resize', () => {
   if (imgEl.style.display !== 'none' && imgNaturalW) {
