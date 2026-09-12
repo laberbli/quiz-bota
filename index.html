@@ -378,7 +378,7 @@
 
     <div class="field">
       <label for="input-common">Nom commun</label>
-      <input type="text" id="input-common" list="list-common" autocomplete="off" placeholder="ex : Pin sylvestre (suggestions à partir de 3 caractères)">
+      <input type="text" id="input-common" list="list-common" autocomplete="off" placeholder="ex : Pin sylvestre (sugg. dès 3 caractères)">
       <div class="answer-reveal" id="reveal-common"></div>
     </div>
 
@@ -413,6 +413,10 @@
    "images/1b.jpg"]). S'il y a plusieurs images, des flèches et
    des points apparaissent pour naviguer entre elles.
    ============================================================ */
+  
+  /*TODO:
+   * - ajouter possibilité d'avoir plusieurs noms communs 
+   */
 const plants = [
   { id: 67, common: "Amarante réfléchie", scientific: "Amaranthus retroflexus", family: "AMARANTHACEES", images: ["images/67.jpg"] },
   { id: 68, common: "Chénopode blanc", scientific: "Chenopodium album", family: "AMARANTHACEES", images: ["images/68.jpg"] },
@@ -429,10 +433,10 @@ const plants = [
   { id: 35, common: "Chèvrefeuille des bois", scientific: "Lonicera periclymenum", family: "CAPRIFOLIACEES", images: ["images/35.jpg"] },
   { id: 10, common: "Cornouiller sanguin", scientific: "Cornus sanguinea", family: "CORNACEES", images: ["images/10.jpg"] },
   { id: 19, common: "Carex des bois", scientific: "Carex sylvatica", family: "CYPERACEES", images: ["images/19.jpg"] },
-  { id: 53, common: "Tamier commun", scientific: "Dioscorea communis", family: "DIOSCOREACEES", images: ["images/53.png"] },
+  { id: 53, common: "Tamier commun", scientific: "Dioscorea communis", family: "DIOSCOREACEES", images: ["images/53.png","images/x53.jpg"] },
   { id: 60, common: "Robinier faux-acacia", scientific: "Robinia pseudacacia", family: "FABACEES", images: ["images/60.jpg"] },
   { id: 1, common: "Chêne pédonculé", scientific: "Quercus robur", family: "FAGACEES", images: ["images/1.jpg"] },
-  { id: 28, common: "Chataignier cultivé", scientific: "Castanea sativa", family: "FAGACEES", images: ["images/28.jpg"] },
+  { id: 28, common: "Châtaignier cultivé", scientific: "Castanea sativa", family: "FAGACEES", images: ["images/28.jpg"] },
   { id: 61, common: "Millepertuis perforé", scientific: "Hypericum perforatum", family: "HYPERICACEES", images: ["images/61.jpg"] },
   { id: 18, common: "Brunelle commune", scientific: "Prunella vulgaris", family: "LAMIACEES", images: ["images/18.jpg"] },
   { id: 3, common: "Frêne élevé", scientific: "Fraxinus excelsior", family: "OLEACEES", images: ["images/3.jpg"] },
