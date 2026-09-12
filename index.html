@@ -416,6 +416,7 @@
   
   /*TODO:
    * - ajouter possibilité d'avoir plusieurs noms communs 
+   * - supprimer bouton skip (redondant)
    */
 const plants = [
   { id: 67, common: "Amarante réfléchie", scientific: "Amaranthus retroflexus", family: "AMARANTHACEES", images: ["images/67.jpg"] },
@@ -558,7 +559,7 @@ let baseScale = 1;
 let zoomScale = 1;
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 4;
-const ZOOM_STEP = 0.4;
+const ZOOM_STEP = 1;
 
 function applyImageTransform() {
   imgEl.style.transform = `translate(${dragOffsetX}px, ${dragOffsetY}px) scale(${zoomScale})`;
@@ -1026,7 +1027,6 @@ restartBtn.addEventListener('click', () => {
 
 // Initialisation
 setupDynamicAutocomplete(inputCommon, datalistCommon, allCommons);
-//setupDynamicAutocomplete(inputFamily, datalistFamily, allFamilies);
 order = shuffle(plants);
 loadQuestion();
 </script>
