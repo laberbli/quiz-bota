@@ -79,6 +79,7 @@
     height: 100%;
     object-fit: cover;
     max-width: none;
+    transform-origin: 0 0;
     cursor: grab;
     touch-action: none;
     user-select: none;
@@ -86,6 +87,9 @@
   }
   .image-wrap img.dragging {
     cursor: grabbing;
+  }
+  .image-wrap img.zoom-transition {
+    transition: transform 0.2s ease;
   }
   .image-reset-btn {
     position: absolute;
@@ -100,6 +104,33 @@
     cursor: pointer;
     box-shadow: 0 2px 6px rgba(0,0,0,0.15);
     display: none;
+  }
+  .image-zoom-controls {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    display: flex;
+    gap: 4px;
+  }
+  .zoom-btn {
+    background: rgba(255,255,255,0.85);
+    border: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    font-size: 1.1em;
+    line-height: 1;
+    color: var(--green-dark);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .zoom-btn:hover:not(:disabled) { background: #fff; }
+  .zoom-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
   }
   .image-drag-hint {
     position: absolute;
@@ -322,6 +353,10 @@
       <button class="image-nav-btn next" id="img-next" style="display:none;">›</button>
       <div class="image-drag-hint" id="image-drag-hint">✥ glisser pour déplacer</div>
       <button class="image-reset-btn" id="img-reset">Recentrer</button>
+      <div class="image-zoom-controls" id="image-zoom-controls" style="display:none;">
+        <button class="zoom-btn" id="zoom-out-btn" title="Zoom arrière" type="button">−</button>
+        <button class="zoom-btn" id="zoom-in-btn" title="Zoom avant" type="button">+</button>
+      </div>
       <div class="image-loading-overlay" id="image-loading-overlay" style="display:none;">
         <div class="loading-spinner"></div>
         <div class="loading-text">Chargement de l'image…</div>
@@ -442,6 +477,9 @@ const imageDots = document.getElementById('image-dots');
 const imgResetBtn = document.getElementById('img-reset');
 const imageDragHint = document.getElementById('image-drag-hint');
 const imageLoadingOverlay = document.getElementById('image-loading-overlay');
+const imageZoomControls = document.getElementById('image-zoom-controls');
+const zoomInBtn = document.getElementById('zoom-in-btn');
+const zoomOutBtn = document.getElementById('zoom-out-btn');
 const imageWrapEl = document.querySelector('.image-wrap');
 const inputCommon = document.getElementById('input-common');
 const inputScientific = document.getElementById('input-scientific');
@@ -492,10 +530,12 @@ function normalizeFamily(str) {
 }
 
 /* ============================================================
-   DÉPLACEMENT (DRAG) DE L'IMAGE DANS SON CADRE
+   DÉPLACEMENT (DRAG) ET ZOOM DE L'IMAGE DANS SON CADRE
    L'image est affichée à sa taille "couvrante" (comme object-fit:
-   cover) mais reste plus grande que le cadre : on peut la faire
-   glisser pour révéler les parties masquées.
+   cover), multipliée par un niveau de zoom réglable. On peut la
+   faire glisser (souris, doigt) pour révéler les parties masquées,
+   et zoomer via la molette, les boutons +/-, le double-clic, ou
+   le pincement à deux doigts sur tactile.
    ============================================================ */
 let dragOffsetX = 0;
 let dragOffsetY = 0;
@@ -508,40 +548,108 @@ let dragStartOffsetX = 0;
 let dragStartOffsetY = 0;
 let imgHasOverflow = false;
 
+let imgNaturalW = 0;
+let imgNaturalH = 0;
+let baseScale = 1;
+let zoomScale = 1;
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 4;
+const ZOOM_STEP = 0.4;
+
 function applyImageTransform() {
-  imgEl.style.transform = `translate(${dragOffsetX}px, ${dragOffsetY}px)`;
+  imgEl.style.transform = `translate(${dragOffsetX}px, ${dragOffsetY}px) scale(${zoomScale})`;
 }
 
-function fitImageToFrame() {
-  const naturalW = imgEl.naturalWidth;
-  const naturalH = imgEl.naturalHeight;
-  if (!naturalW || !naturalH) return;
+function clamp(val, min, max) {
+  return Math.max(min, Math.min(max, val));
+}
 
+/* Fixe la taille "de base" (couvrante, zoom x1) de l'image dans le DOM.
+   Cette taille ne change QUE lors du chargement d'une image ou d'un
+   redimensionnement de fenêtre — jamais pendant un zoom, pour éviter
+   toute recalcul de mise en page (layout) pendant l'animation. */
+function setBaseImageSize() {
+  imgEl.style.width = (imgNaturalW * baseScale) + 'px';
+  imgEl.style.height = (imgNaturalH * baseScale) + 'px';
+}
+
+function applyImageSize(recenter) {
+  if (!imgNaturalW || !imgNaturalH) return;
   const frameW = imageWrapEl.clientWidth;
   const frameH = imageWrapEl.clientHeight;
-  const scale = Math.max(frameW / naturalW, frameH / naturalH);
-  const renderedW = naturalW * scale;
-  const renderedH = naturalH * scale;
-
-  imgEl.style.width = renderedW + 'px';
-  imgEl.style.height = renderedH + 'px';
+  const renderedW = imgNaturalW * baseScale * zoomScale;
+  const renderedH = imgNaturalH * baseScale * zoomScale;
 
   // Bornes : l'image ne doit jamais laisser de vide dans le cadre
   dragBoundsX = [Math.min(0, frameW - renderedW), 0];
   dragBoundsY = [Math.min(0, frameH - renderedH), 0];
 
-  // Centrage par défaut
-  dragOffsetX = dragBoundsX[0] / 2;
-  dragOffsetY = dragBoundsY[0] / 2;
+  if (recenter) {
+    dragOffsetX = dragBoundsX[0] / 2;
+    dragOffsetY = dragBoundsY[0] / 2;
+  } else {
+    dragOffsetX = clamp(dragOffsetX, dragBoundsX[0], dragBoundsX[1]);
+    dragOffsetY = clamp(dragOffsetY, dragBoundsY[0], dragBoundsY[1]);
+  }
   applyImageTransform();
 
   imgHasOverflow = (renderedW - frameW > 2) || (renderedH - frameH > 2);
-  imgResetBtn.style.display = imgHasOverflow ? 'block' : 'none';
+  imgResetBtn.style.display = (imgHasOverflow || zoomScale > MIN_ZOOM) ? 'block' : 'none';
   imageDragHint.style.display = imgHasOverflow ? 'block' : 'none';
+  zoomOutBtn.disabled = zoomScale <= MIN_ZOOM + 0.001;
+  zoomInBtn.disabled = zoomScale >= MAX_ZOOM - 0.001;
 }
 
-function clamp(val, min, max) {
-  return Math.max(min, Math.min(max, val));
+function fitImageToFrame() {
+  imgNaturalW = imgEl.naturalWidth;
+  imgNaturalH = imgEl.naturalHeight;
+  if (!imgNaturalW || !imgNaturalH) return;
+
+  const frameW = imageWrapEl.clientWidth;
+  const frameH = imageWrapEl.clientHeight;
+  baseScale = Math.max(frameW / imgNaturalW, frameH / imgNaturalH);
+  zoomScale = 1;
+  setBaseImageSize();
+  applyImageSize(true);
+  imageZoomControls.style.display = 'flex';
+}
+
+let zoomTransitionTimeout = null;
+
+/* Zoome en gardant le point (clientX, clientY) fixe à l'écran
+   (centre du cadre si non précisé) — comme un zoom "vers le curseur".
+   smooth=true anime la transition (boutons, molette, double-clic) ;
+   smooth=false l'évite pendant un pincement tactile continu. */
+function setZoom(newZoom, anchorClientX, anchorClientY, smooth = true) {
+  if (!imgNaturalW || !imgNaturalH) return;
+  newZoom = clamp(newZoom, MIN_ZOOM, MAX_ZOOM);
+  if (Math.abs(newZoom - zoomScale) < 0.001) return;
+
+  const rect = imageWrapEl.getBoundingClientRect();
+  const anchorX = anchorClientX !== undefined ? anchorClientX - rect.left : rect.width / 2;
+  const anchorY = anchorClientY !== undefined ? anchorClientY - rect.top : rect.height / 2;
+
+  const oldRenderedW = imgNaturalW * baseScale * zoomScale;
+  const oldRenderedH = imgNaturalH * baseScale * zoomScale;
+  const ratioX = (anchorX - dragOffsetX) / oldRenderedW;
+  const ratioY = (anchorY - dragOffsetY) / oldRenderedH;
+
+  zoomScale = newZoom;
+  const newRenderedW = imgNaturalW * baseScale * zoomScale;
+  const newRenderedH = imgNaturalH * baseScale * zoomScale;
+
+  dragOffsetX = anchorX - ratioX * newRenderedW;
+  dragOffsetY = anchorY - ratioY * newRenderedH;
+
+  if (smooth) {
+    imgEl.classList.add('zoom-transition');
+    clearTimeout(zoomTransitionTimeout);
+    zoomTransitionTimeout = setTimeout(() => imgEl.classList.remove('zoom-transition'), 220);
+  } else {
+    imgEl.classList.remove('zoom-transition');
+  }
+
+  applyImageSize(false);
 }
 
 function startDrag(clientX, clientY) {
@@ -551,6 +659,8 @@ function startDrag(clientX, clientY) {
   dragStartY = clientY;
   dragStartOffsetX = dragOffsetX;
   dragStartOffsetY = dragOffsetY;
+  clearTimeout(zoomTransitionTimeout);
+  imgEl.classList.remove('zoom-transition');
   imgEl.classList.add('dragging');
 }
 
@@ -570,34 +680,104 @@ function endDrag() {
 
 imgEl.addEventListener('dragstart', (e) => e.preventDefault());
 
+/* Gestion combinée glisser (1 doigt / souris) et pincement (2 doigts) */
+const activePointers = new Map();
+let pinchStartDistance = null;
+let pinchStartZoom = 1;
+
+function pointerDistance() {
+  const pts = [...activePointers.values()];
+  const dx = pts[0].x - pts[1].x;
+  const dy = pts[0].y - pts[1].y;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+function pointersMidpoint() {
+  const pts = [...activePointers.values()];
+  return { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+}
+
 imgEl.addEventListener('pointerdown', (e) => {
   e.preventDefault();
-  startDrag(e.clientX, e.clientY);
   imgEl.setPointerCapture(e.pointerId);
+  activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+  if (activePointers.size === 2) {
+    isDraggingImg = false;
+    imgEl.classList.remove('dragging');
+    pinchStartDistance = pointerDistance();
+    pinchStartZoom = zoomScale;
+  } else if (activePointers.size === 1) {
+    startDrag(e.clientX, e.clientY);
+  }
 });
+
 imgEl.addEventListener('pointermove', (e) => {
-  if (isDraggingImg) e.preventDefault();
-  moveDrag(e.clientX, e.clientY);
+  if (!activePointers.has(e.pointerId)) return;
+  activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+  if (activePointers.size === 2 && pinchStartDistance) {
+    e.preventDefault();
+    const newDistance = pointerDistance();
+    const mid = pointersMidpoint();
+    setZoom(pinchStartZoom * (newDistance / pinchStartDistance), mid.x, mid.y, false);
+  } else if (activePointers.size === 1) {
+    if (isDraggingImg) e.preventDefault();
+    moveDrag(e.clientX, e.clientY);
+  }
 });
-imgEl.addEventListener('pointerup', (e) => {
+
+function releasePointer(e) {
+  activePointers.delete(e.pointerId);
+  if (activePointers.size < 2) {
+    pinchStartDistance = null;
+  }
+  if (activePointers.size === 0) {
+    endDrag();
+  } else if (activePointers.size === 1) {
+    const remaining = [...activePointers.values()][0];
+    startDrag(remaining.x, remaining.y);
+  }
+}
+imgEl.addEventListener('pointerup', (e) => { e.preventDefault(); releasePointer(e); });
+imgEl.addEventListener('pointercancel', releasePointer);
+
+// Molette de souris : zoom avant/arrière centré sur le curseur
+imageWrapEl.addEventListener('wheel', (e) => {
+  if (!imgNaturalW) return;
   e.preventDefault();
-  endDrag();
+  const delta = e.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP;
+  setZoom(zoomScale + delta, e.clientX, e.clientY);
+}, { passive: false });
+
+// Double-clic / double-tap : bascule entre zoom x1 et x2
+imgEl.addEventListener('dblclick', (e) => {
+  setZoom(zoomScale > MIN_ZOOM ? MIN_ZOOM : 2, e.clientX, e.clientY);
 });
-imgEl.addEventListener('pointercancel', endDrag);
 
 imgEl.addEventListener('load', () => {
   imageLoadingOverlay.style.display = 'none';
   fitImageToFrame();
 });
 window.addEventListener('resize', () => {
-  if (imgEl.style.display !== 'none') fitImageToFrame();
+  if (imgEl.style.display !== 'none' && imgNaturalW) {
+    const frameW = imageWrapEl.clientWidth;
+    const frameH = imageWrapEl.clientHeight;
+    baseScale = Math.max(frameW / imgNaturalW, frameH / imgNaturalH);
+    setBaseImageSize();
+    applyImageSize(true);
+  }
 });
 
 imgResetBtn.addEventListener('click', () => {
-  dragOffsetX = dragBoundsX[0] / 2;
-  dragOffsetY = dragBoundsY[0] / 2;
-  applyImageTransform();
+  zoomScale = 1;
+  imgEl.classList.add('zoom-transition');
+  clearTimeout(zoomTransitionTimeout);
+  zoomTransitionTimeout = setTimeout(() => imgEl.classList.remove('zoom-transition'), 220);
+  applyImageSize(true);
 });
+
+zoomInBtn.addEventListener('click', () => setZoom(zoomScale + ZOOM_STEP));
+zoomOutBtn.addEventListener('click', () => setZoom(zoomScale - ZOOM_STEP));
 
 /* Autocomplétion dynamique : les suggestions n'apparaissent
    qu'à partir de 3 caractères saisis, et uniquement pour les
@@ -650,16 +830,22 @@ function loadImage() {
   imgEl.style.display = 'block';
   imgPlaceholder.style.display = 'none';
 
-  // Réinitialise le drag/pan avant le chargement de la nouvelle image
+  // Réinitialise le drag/pan/zoom avant le chargement de la nouvelle image
   isDraggingImg = false;
   imgHasOverflow = false;
   dragOffsetX = 0;
   dragOffsetY = 0;
+  zoomScale = 1;
+  imgNaturalW = 0;
+  imgNaturalH = 0;
+  activePointers.clear();
+  pinchStartDistance = null;
   imgEl.style.width = '100%';
   imgEl.style.height = '100%';
   imgEl.style.transform = 'translate(0px, 0px)';
   imgResetBtn.style.display = 'none';
   imageDragHint.style.display = 'none';
+  imageZoomControls.style.display = 'none';
 
   if (images.length > 0) {
     imageLoadingOverlay.style.display = 'flex';
